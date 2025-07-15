@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<style>
+body { font-family: monospace }
+span { padding: 2px; }.line { white-space: pre; padding: 0px; margin: 0; display: block; }
+.INSTRUCTION { background-color: rgba(230, 57, 70, 0.3); }
+.REGISTER { background-color: rgba(69, 240, 157, 0.3); }
+.LITERAL { background-color: rgba(244, 162, 97, 0.3); }
+.LEFT_PAREN { background-color: rgba(42, 157, 143, 0.3); }
+.RIGHT_PAREN { background-color: rgba(42, 157, 144, 0.3); }
+.IDENT { background-color: rgba(38, 70, 150, 0.3); }
+.KEYWORD { background-color: rgba(233, 196, 106, 0.3); }
+.LABEL { background-color: rgba(141, 153, 174, 0.3); }
+.ARG { background-color: rgba(168, 218, 220, 0.3); }
+.NUM_CONSTANT { background-color: rgba(255, 175, 204, 0.3); }
+.STR_CONSTANT { background-color: rgba(181, 23, 158, 0.3); }
+.COMMENT { background-color: rgba(45, 45, 45, 0.1); }
+</style>
+</head>
+<body>
+<div class='line' style='display: flex;'>
+</div>
+<div class='line' style='display: flex;'>
+<span class='KEYWORD' title='KEYWORD'>.macro</span>
+<span style='white-space: pre'> </span>
+<span class='IDENT' title='IDENT'>hi</span>
+<span class='LEFT_PAREN' title='LEFT_PAREN'>(</span>
+<span class='REGISTER' title='REGISTER'>$a</span>
+<span class='RIGHT_PAREN' title='RIGHT_PAREN'>)</span>
+</div>
+<div class='line' style='display: flex;'>
+<span style='white-space: pre'>    </span>
+<span class='INSTRUCTION' title='INSTRUCTION'>li</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t2</span>
+<span style='white-space: pre'> </span>
+<span class='NUM_CONSTANT' title='NUM_CONSTANT'>12</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='KEYWORD' title='KEYWORD'>.endmacro</span>
+</div>
+<div class='line' style='display: flex;'>
+</div>
+<div class='line' style='display: flex;'>
+<span class='INSTRUCTION' title='INSTRUCTION'>li</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t0</span>
+<span style='white-space: pre'> </span>
+<span class='NUM_CONSTANT' title='NUM_CONSTANT'>34</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='INSTRUCTION' title='INSTRUCTION'>li</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t1</span>
+<span style='white-space: pre'> </span>
+<span class='NUM_CONSTANT' title='NUM_CONSTANT'>35</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='INSTRUCTION' title='INSTRUCTION'>add</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t0</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t0</span>
+<span style='white-space: pre'> </span>
+<span class='REGISTER' title='REGISTER'>$t1</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='IDENT' title='IDENT'>hi</span>
+<span class='LEFT_PAREN' title='LEFT_PAREN'>(</span>
+<span class='RIGHT_PAREN' title='RIGHT_PAREN'>)</span>
+<span style='white-space: pre'>    </span>
+<span class='COMMENT' title='COMMENT'># do stuff</span>
+</div>
+<div class='line' style='display: flex;'>
+</div>
+<div class='line' style='display: flex;'>
+<span class='KEYWORD' title='KEYWORD'>.include</span>
+<span style='white-space: pre'> </span>
+<span class='STR_CONSTANT' title='STR_CONSTANT'>&quot;board.c&quot;</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='KEYWORD' title='KEYWORD'>.include</span>
+<span style='white-space: pre'> </span>
+<span class='STR_CONSTANT' title='STR_CONSTANT'>&quot;pill_red_left.c&quot;</span>
+</div>
+<div class='line' style='display: flex;'>
+<span class='KEYWORD' title='KEYWORD'>.include</span>
+<span style='white-space: pre'> </span>
+<span class='STR_CONSTANT' title='STR_CONSTANT'>&quot;pill_red_right.c&quot;</span>
+</div>
+</body>
+</html>
