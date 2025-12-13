@@ -1,4 +1,4 @@
 # pymips
-This is a Lexer/Parser?/Interpreter for the MIPS assembly language written in Python.
+This is a Lexer for the MIPS assembly language written in Python.
 
 It comes with a handy utility which generates a visual representation of the lexer's output using HTML (see `example.html` or the [hosted version](https://ch-iv.github.io/pymips/example.html)).
