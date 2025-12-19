@@ -1,52 +1,24 @@
-from typing import Literal, Any
-from enum import Enum
+from typing import Any
+from tokens.token import *
+from expressions.expression import *
+from tokens.instructions import all_instructions
 
 source = """
-.macro hi($a)
+.macro hi(%hi)
     li $t2 12
 .endmacro
 
 li $t0 34
 li $t1 35
-add $t0 $t0 $t1
 hi()    # do stuff
 
 .include "board.c"
 .include "pill_red_left.c"
-.include "pill_red_right.c"
 """
 
-instructions = [
-    "li", "add", "move", "lw", "sll", "sw", "bgtz", "andi", "ori", "j", "jal", "beq", "addi", "sub", "mul", "div",
-    "xor", "nor", "slt", "slti", "srl", "sra", "bne", "subi", "bgez", "la", "addiu", "bge", "mfhi", "mflo"
-]
+with open("sample2.asm", "r") as f:
+    source = f.read()
 
-class TokenType(Enum):
-    INSTRUCTION = (230, 57, 70, 0.3)
-    REGISTER = (69, 240, 157, 0.3)
-    LITERAL = (244, 162, 97, 0.3)
-    LEFT_PAREN = (42, 157, 143, 0.3)
-    RIGHT_PAREN = (42, 157, 144, 0.3)
-    IDENT = (38, 70, 150, 0.3)
-    KEYWORD = (233, 196, 106, 0.3)
-    LABEL = (141, 153, 174, 0.3)
-    ARG = (168, 218, 220, 0.3)
-    NUM_CONSTANT = (255, 175, 204, 0.3)
-    STR_CONSTANT = (181, 23, 158, 0.3)
-    COMMENT = (45, 45, 45, 0.1)
-
-
-class Token:
-    def __init__(self, lexeme: str, tok_type: TokenType, line_idx, column_start, column_end):
-        self.lexeme = lexeme
-        self.token_type = tok_type
-        self.line_idx = line_idx
-        self.column_start = column_start
-        self.column_end = column_end
-
-    def __repr__(self):
-        return (f"Token(lexeme='{self.lexeme}', token_type={self.token_type.name}),"
-                f" line_idx={self.line_idx}, column_start={self.column_start}, column_end={self.column_end})")
 
 class Tokenizer:
     def __init__(self, corpus: str):
@@ -67,39 +39,39 @@ class Tokenizer:
                 if c == " ":
                     continue
                 elif c == "(":
-                    tokens.append(Token(c, TokenType.LEFT_PAREN, line_idx, i - 1, i))
+                    tokens.append(LeftParenToken(c, line_idx, i - 1, i))
                 elif c == ")":
-                    tokens.append(Token(c, TokenType.RIGHT_PAREN, line_idx, i - 1, i))
+                    tokens.append(RightParenToken(c, line_idx, i - 1, i))
                 elif c == "$":
                     buff = c
                     col_start = i - 1
                     while i < len(line) and line[i].isalnum():
                         buff += line[i]
                         i += 1
-                    tokens.append(Token(buff, TokenType.REGISTER, line_idx, col_start, i))
+                    tokens.append(RegisterToken(buff, line_idx, col_start, i))
                 elif c.isalpha() or c == "." or c == "%":
                     buff = c
                     col_start = i - 1
                     while i < len(line) and (line[i].isalnum() or line[i] == "_" or line[i] == ":"):
                         buff += line[i]
                         i += 1
-                    token_type = TokenType.IDENT
-                    if buff in instructions:
-                        token_type = TokenType.INSTRUCTION
+                    if buff in all_instructions:
+                        tokens.append(InstructionToken(buff, line_idx, col_start, i))
                     elif buff.endswith(":"):
-                        token_type = TokenType.LABEL
+                        tokens.append(LabelToken(buff, line_idx, col_start, i))
                     elif buff.startswith("."):
-                        token_type = TokenType.KEYWORD
+                        tokens.append(KeywordToken(buff, line_idx, col_start, i))
                     elif buff.startswith("%"):
-                        token_type = TokenType.ARG
-                    tokens.append(Token(buff, token_type, line_idx, col_start, i))
+                        tokens.append(ArgToken(buff, line_idx, col_start, i))
+                    else:
+                        tokens.append(IdentToken(buff, line_idx, col_start, i))
                 elif c.isnumeric():
                     buff = c
                     col_start = i - 1
                     while i < len(line) and line[i].isalnum():
                         buff += line[i]
                         i += 1
-                    tokens.append(Token(buff, TokenType.NUM_CONSTANT, line_idx, col_start, i))
+                    tokens.append(NumConstantToken(buff, line_idx, col_start, i))
                 elif c == '"':
                     buff = c
                     col_start = i - 1
@@ -109,29 +81,16 @@ class Tokenizer:
                     if i < len(line) and line[i] == '"':
                         buff += line[i]
                         i += 1
-                    tokens.append(Token(buff, TokenType.STR_CONSTANT, line_idx, col_start, i))
+                    tokens.append(StrConstantToken(buff, line_idx, col_start, i))
                 elif c == "#":
                     buff = c
                     col_start = i - 1
                     while i < len(line) and line[i] != "\n":
                         buff += line[i]
                         i += 1
-                    tokens.append(Token(buff, TokenType.COMMENT, line_idx, col_start, i))
-
+                    tokens.append(CommentToken(buff, line_idx, col_start, i))
+        tokens.append(EOFToken("EOF", line_idx, len(line), len(line)))
         return tokens
-
-def instruction_type(token: Token) -> Literal["r", "i", "j"]:
-    assert token.token_type == TokenType.INSTRUCTION
-
-    if token.lexeme in {"add", "sub", "mul", "div"}:
-        return "r"
-    elif token.lexeme in {"li", "lw", "sw"}:
-        return "i"
-    elif token.lexeme in {"j", "jal"}:
-        return "j"
-
-    raise ValueError(f"Unknown instruction type for token: {token.lexeme}")
-
 
 from abc import ABC, abstractmethod
 
@@ -163,76 +122,6 @@ class Statement(ABC):
     def __repr__(self) -> str:
         pass
 
-
-class RTypeStatement(Statement):
-    def __init__(self, instruction: Token, op1: Token, op2: Token, dest: Token):
-        super().__init__()
-        assert instruction.token_type == TokenType.INSTRUCTION
-        assert instruction_type(instruction) == "r"
-        assert op1.token_type == TokenType.REGISTER
-        assert op2.token_type == TokenType.REGISTER
-        assert dest.token_type == TokenType.REGISTER
-
-        self.instruction = instruction
-        self.op1 = op1
-        self.op2 = op2
-        self.dest = dest
-
-    def execute(self, machine: Machine) -> None:
-        if self.instruction.lexeme == "add":
-            result = machine.get(self.op1.lexeme) + machine.get(self.op2.lexeme)
-            machine.set(self.dest.lexeme, result)
-
-    def __repr__(self) -> str:
-        return f"RTypeStatement(instruction={self.instruction.lexeme}, op1={self.op1.lexeme}, op2={self.op2.lexeme}, dest={self.dest.lexeme})"
-
-
-class ITypeStatement(Statement):
-    def __init__(self, instruction: Token, dest: Token, literal: Token):
-        super().__init__()
-        assert instruction.token_type == TokenType.INSTRUCTION
-        assert instruction_type(instruction) == "i"
-        assert dest.token_type == TokenType.REGISTER
-        assert literal.token_type == TokenType.LITERAL
-
-        self.instruction = instruction
-        self.dest = dest
-        self.literal = literal
-
-    def execute(self, machine: Machine) -> None:
-        if self.instruction.lexeme == "li":
-            machine.set(self.dest.lexeme, int(self.literal.lexeme))
-
-    def __repr__(self) -> str:
-        return f"ITypeStatement(instruction={self.instruction.lexeme}, dest={self.dest.lexeme}, literal={self.literal.lexeme})"
-
-class Parser:
-    def __init__(self, tokens: list[Token]):
-        self.tokens = tokens
-
-    def parse(self):
-        statements = []
-        i = 0
-        while i < len(self.tokens):
-            token = self.tokens[i]
-            if token.token_type == TokenType.INSTRUCTION:
-                if instruction_type(token) == "r":
-                    dest = self.tokens[i + 1]
-                    op1 = self.tokens[i + 2]
-                    op2 = self.tokens[i + 3]
-                    statements.append(RTypeStatement(token, op1, op2, dest))
-                    i += 4
-                elif instruction_type(token) == "i":
-                    dest = self.tokens[i + 1]
-                    literal = self.tokens[i + 2]
-                    statements.append(ITypeStatement(token, dest, literal))
-                    i += 3
-                else:
-                    raise ValueError(f"Unknown instruction type for token: {token.lexeme}")
-            else:
-                raise ValueError(f"Expected instruction token, got: {token.lexeme}")
-
-        return statements
 
 def generate_html_highlight(tokens: list[Token], source: str, output_file: str):
     html = [
@@ -296,7 +185,203 @@ def escape_html(text: str) -> str:
             .replace('"', "&quot;")
     )
 
+class Parser:
+    def __init__(self, tokens: list[Token]):
+        self.tokens = tokens
+        self.current_token = None
+
+    def eat(self, expected: None | list[Token] = None) -> Token:
+        self.current_token = self.tokens.pop(0)
+
+        if expected and self.current_token.token_type not in expected:
+            raise ValueError(f"Expected {expected}, got {self.current_token.token_type}")
+
+        return self.current_token
+
+    def peek(self) -> Token:
+        return self.tokens[0]
+    
+
+    def parse_top_level(self) -> dict:
+        prog = []
+
+        while self.tokens:
+            if isinstance(self.peek(), EOFToken):
+                break
+
+            prog.append(self.parse_expression())
+
+        return { "type": "prog", "prog": prog}
+
+    def parse_expression(self) -> Expression:
+        match self.peek():
+            case InstructionToken():
+                return self.parse_instruction()
+            case KeywordToken():
+                return self.parse_keyword()
+            case IdentToken():
+                return self.parse_macro_call()
+            case CommentToken():
+                self.eat()
+                return EmptyExpression()
+            case LabelToken():
+                return self.parse_label()
+            case _:
+                raise ValueError(f"Unhandled token: {self.peek()}")
+
+    def parse_label(self) -> LabelExpression:
+        label_token = to(self.eat(), LabelToken)
+        return LabelExpression(label_token.lexeme)
+
+    def parse_macro_call(self) -> MacroCallExpression:
+        macro_name_token = to(self.eat(), IdentToken)
+        print(macro_name_token)
+        if isinstance(self.peek(), IdentToken):
+            breakpoint()
+        to(self.eat(), LeftParenToken)
+        args = []
+        while not isinstance(self.peek(), RightParenToken):
+            arg = self.eat()
+            if not isinstance(arg, RegisterToken) and not isinstance(arg, NumConstantToken) and not isinstance(arg, StrConstantToken) and not isinstance(arg, IdentToken):
+                raise ValueError(f"Expected register, number, identifier or string, got {arg}")
+            args.append(arg.to_const())
+        to(self.eat(), RightParenToken)
+        return MacroCallExpression(macro_name_token.lexeme, args)
+
+    def parse_keyword(self) -> Expression:
+        keyword_token = to(self.peek(), KeywordToken)
+        match keyword_token.lexeme:
+            case ".macro":
+                return self.parse_macro()
+            case ".include":
+                return self.parse_include()
+            case _:
+                raise ValueError(f"Unknown keyword: {keyword_token.lexeme}")
+
+    def parse_include(self) -> IncludeExpression:
+        include_token = to(self.eat(), KeywordToken)
+        assert include_token.lexeme == ".include"
+        file_name_token = to(self.eat(), StrConstantToken)
+
+        return IncludeExpression(file_name_token.lexeme)
+
+    def parse_instruction(self) -> InstructionExpression:
+        instruction_token = to(self.eat(), InstructionToken)
+
+        match instruction_token.instruction_type():
+            case InstructionType.RRR:
+                return RRRInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    src1=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    src2=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                )
+            case InstructionType.RI:
+                return RInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    immediate=to(self.eat(), NumConstantToken, ArgToken).to_const(),
+                )
+            case InstructionType.RR:
+                return RRInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    src=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                )
+            case InstructionType.RL:
+                return RLInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    label=to(self.eat(), LabelToken, ArgToken).to_const(),
+                )
+            case InstructionType.RRL:
+                return RRLInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    src1=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    src2=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    label=to(self.eat(), LabelToken, ArgToken).to_const(),
+                )
+            case InstructionType.RRI:
+                return RRIInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    src1=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
+                    immediate=to(self.eat(), NumConstantToken, ArgToken).to_const(),
+                )
+            case InstructionType.ROR:
+                # This type of instruction can have either an offset (e.g 0($t0)) or a label
+                # as the last argument.
+                dest = to(self.eat(), RegisterToken, ArgToken).to_const()
+                print(instruction_token)
+
+                if isinstance(self.peek(), NumConstantToken):
+                    offset = to(self.eat(), NumConstantToken, ArgToken).to_const()
+                    to(self.eat(), LeftParenToken)
+                    src = to(self.eat(), RegisterToken, ArgToken).to_const()
+                    to(self.eat(), RightParenToken)
+                    return RORInstructionExpression(
+                        instruction=instruction_token.lexeme,
+                        dest=dest,
+                        offset=offset,
+                        src=src,
+                    )
+                else:
+                    return RLIInstructionExpression(
+                        instruction=instruction_token.lexeme,
+                        dest=dest,
+                        label=to(self.eat(), LabelToken, ArgToken, IdentToken, RegisterToken).to_const(),
+                    )
+            case InstructionType.L:
+                return LInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    label=to(self.eat(), LabelToken, ArgToken, IdentToken).to_const(),
+                )
+            case _:
+                raise ValueError(f"Unknown instruction type: {instruction_token.instruction_type()}")
+
+    def parse_macro(self) -> MacroExpression:
+        # Parse .macro and name
+        macro_start_token = to(self.eat(), KeywordToken)
+        assert macro_start_token.lexeme == ".macro"
+
+        name_token = to(self.eat(), IdentToken)
+
+        # Parse arguments
+        to(self.eat(), LeftParenToken)
+        args = []
+        while not isinstance(self.peek(), RightParenToken):
+            args.append(to(self.eat(), ArgToken).to_const(definition=True))
+        to(self.eat(), RightParenToken)
+
+        # Parse body
+        body = []
+        while not (isinstance(self.peek(), KeywordToken) and self.peek().lexeme == ".end_macro"):
+            body.append(self.parse_expression())
+
+        # Parse .end_macro
+        end_macro_token = to(self.eat(), KeywordToken)
+        assert end_macro_token.lexeme == ".end_macro"
+
+        return MacroExpression(name_token.lexeme, args, body)
+
+def to(token: Token, *accepted_types: list[type[Token]]) -> Token:
+    if not any(isinstance(token, accepted_type) for accepted_type in accepted_types):
+        raise ValueError(f"Expected {accepted_types}, got {type(token)}")
+
+    return token
+
+
 
 t = Tokenizer(source)
 tokens = t.tokenize()
-generate_html_highlight(tokens, source, output_file="example.html")
+# for token in tokens:
+    # print(token)
+import json
+p = Parser(tokens)
+prog = p.parse_top_level()
+with open("prog.c", "w") as f:
+    f.write("\n".join([expr.to_c() for expr in prog["prog"]]))
+for expr in prog["prog"]:
+    print(expr.to_c())
+# print(json.dumps(prog, indent=2))
+# generate_html_highlight(tokens, source, output_file="example.html")
