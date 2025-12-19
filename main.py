@@ -236,8 +236,6 @@ class Parser:
     def parse_macro_call(self) -> MacroCallExpression:
         macro_name_token = to(self.eat(), IdentToken)
         print(macro_name_token)
-        if isinstance(self.peek(), IdentToken):
-            breakpoint()
         to(self.eat(), LeftParenToken)
         args = []
         while not isinstance(self.peek(), RightParenToken):
@@ -366,9 +364,29 @@ class Parser:
 
 def to(token: Token, *accepted_types: list[type[Token]]) -> Token:
     if not any(isinstance(token, accepted_type) for accepted_type in accepted_types):
+        highlight_token_in_source(token, source, f"Expected {accepted_types}, got {type(token)}")
         raise ValueError(f"Expected {accepted_types}, got {type(token)}")
 
     return token
+
+def highlight_token_in_source(token: Token, source: str, error_message: str) -> str:
+    RESET = '\033[0m'
+    RED = '\033[31m'
+    CYAN = '\033[36m'
+    BOLD = '\033[1m'
+    
+    line_offset = 4
+    source_lines = source.splitlines()
+    start_line = max(0, token.line_idx - line_offset)
+    end_line = min(len(source_lines), token.line_idx + line_offset)
+
+    for line_idx in range(start_line, end_line):
+        line = source_lines[line_idx]
+        print(f"{CYAN}{line_idx + 1}{RESET} {line}")
+        if line_idx == token.line_idx:
+            caret = f"{RED}{BOLD}{'~' * (token.column_end - token.column_start)}{RESET}"
+            print(f"    {' ' * (token.column_start)}{caret}", end="   ")
+            print(f"{RED}{BOLD}{error_message}{RESET}", end="\n\n")
 
 
 
