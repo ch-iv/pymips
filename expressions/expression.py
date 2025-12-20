@@ -219,7 +219,17 @@ class MacroExpression(Expression):
         body = "\n".join([f"\t{line}" for line in body])
 
         return f"""\nvoid _macro_{self.name}({", ".join([arg.to_c() for arg in self.args])}) {{{body}
-}}\n"""
+}}"""
+
+class MainWrapperExpression(Expression):
+    def __init__(self, body: list[Expression]) -> None:
+        self.body = body
+    
+    def to_c(self) -> str:
+        body = "\n".join([expr.to_c() for expr in self.body]).splitlines()
+        body = "\n".join([f"\t{line}" for line in body])
+
+        return f"""\nvoid main() {{\n{body}\n}}"""
 
 class MacroCallExpression(Expression):
     def __init__(self, name: str, args: list[Constant]):

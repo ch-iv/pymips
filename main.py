@@ -2,6 +2,7 @@ from typing import Any
 from tokens.token import *
 from expressions.expression import *
 from tokens.instructions import all_instructions
+from program import Program
 
 source = """
 .macro hi(%hi)
@@ -16,7 +17,7 @@ hi()    # do stuff
 .include "pill_red_left.c"
 """
 
-with open("sample.asm", "r") as f:
+with open("sample3.asm", "r") as f:
     source = f.read()
 
 
@@ -91,37 +92,6 @@ class Tokenizer:
                     tokens.append(CommentToken(buff, line_idx, col_start, i))
         tokens.append(EOFToken("EOF", line_idx, len(line), len(line)))
         return tokens
-
-from abc import ABC, abstractmethod
-
-class Machine:
-    def __init__(self):
-        self.registers = {f"$t{i}": 0 for i in range(9)}
-
-    def set(self, register: str, val: Any) -> None:
-        assert register in self.registers
-        self.registers[register] = val
-
-    def get(self, register: str) -> Any:
-        assert register in self.registers
-        return self.registers[register]
-
-    def print_registers(self) -> None:
-        for reg, val in self.registers.items():
-            print(f"{reg}: {val}", end=", ")
-
-class Statement(ABC):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def execute(self, machine: Machine) -> None:
-        pass
-
-    @abstractmethod
-    def __repr__(self) -> str:
-        pass
-
 
 def generate_html_highlight(tokens: list[Token], source: str, output_file: str):
     html = [
@@ -202,7 +172,7 @@ class Parser:
         return self.tokens[0]
     
 
-    def parse_top_level(self) -> dict:
+    def parse_top_level(self) -> list[Expression]:
         prog = []
 
         while self.tokens:
@@ -211,7 +181,7 @@ class Parser:
 
             prog.append(self.parse_expression())
 
-        return { "type": "prog", "prog": prog}
+        return prog
 
     def parse_expression(self) -> Expression:
         match self.peek():
@@ -397,19 +367,13 @@ def highlight_token_in_source(token: Token, source: str, error_message: str) -> 
             print(f"    {' ' * (token.column_start)}{caret}", end="   ")
             print(f"{RED}{BOLD}{error_message}{RESET}", end="\n\n")
 
-
-
 t = Tokenizer(source)
 tokens = t.tokenize()
-for token in tokens:
-    print(token)
-    #print(token)
-import json
+
 p = Parser(tokens)
-prog = p.parse_top_level()
+statements = p.parse_top_level()
+
+program = Program(statements)
+
 with open("prog.c", "w") as f:
-    f.write("\n".join([expr.to_c() for expr in prog["prog"]]))
-for expr in prog["prog"]:
-    print(expr.to_c())
-# print(json.dumps(prog, indent=2))
-# generate_html_highlight(tokens, source, output_file="example.html")
+    f.write(program.to_c())
