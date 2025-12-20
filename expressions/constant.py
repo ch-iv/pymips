@@ -8,10 +8,14 @@ class Constant(ABC):
 
 class NumericConstant(Constant):
     def __init__(self, value: str):
-        if not value.isnumeric():
+        if value.startswith("0x"):
+            self._value = int(value, 16)
+        elif value.startswith("0b"):
+            self._value = int(value, 2)
+        elif not value.isnumeric():
             raise ValueError(f"Expected numeric constant, got {value}")
-
-        self._value = value
+        else:
+            self._value = int(value)
 
     def to_c(self) -> str:
         return str(self._value)

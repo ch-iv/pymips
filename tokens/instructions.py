@@ -9,6 +9,7 @@ class InstructionType(Enum):
     RRL = "rrl"
     ROR = "ror"
     L = "l"
+    R = "r"
 
 instructions: dict[InstructionType, list[str]] = {
     InstructionType.RRR: [
@@ -17,9 +18,12 @@ instructions: dict[InstructionType, list[str]] = {
         "mul",
         "div",
         "xor",
+        "and",
+        "or",
     ],
     InstructionType.RR: [
-        "move"
+        "move",
+        "div",
     ],
     InstructionType.RI: [
         "li"
@@ -29,29 +33,36 @@ instructions: dict[InstructionType, list[str]] = {
         "andi",
         "ori",
         "xori",
-        "subi"
+        "subi",
+        "sll",
+        "srl",
     ],
     InstructionType.RL: [
-        "la"
+        "la",
         "bgtz",
+        "bltz",
     ],
     InstructionType.RRL: [
         "blt",
         "ble",
         "bgt",
         "bge",
-        "beq"
+        "beq",
+        "bne"
     ],
     InstructionType.ROR: [
         "lw",
         "sw",
         "beqz",
         "bgez",
-        "beq",
     ],
     InstructionType.L: [
         "j",
         "jal",
+    ],
+    InstructionType.R: [
+        "mfhi",
+        "mflo",
     ],
 }
 
@@ -61,4 +72,4 @@ instruction_types: dict[str, InstructionType] = {
     for instruction in instruction_list
 }
 
-all_instructions: list[str] = set(instruction_types.keys())
+all_instructions: set[str] = set(instruction_types.keys())

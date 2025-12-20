@@ -46,7 +46,7 @@ class RRRInstructionExpression(InstructionExpression):
     def args(self) -> list[Constant]:
         return [self.dest, self.src1, self.src2]
 
-class RInstructionExpression(InstructionExpression):
+class RIInstructionExpression(InstructionExpression):
     def __init__(
         self,
         instruction: str,
@@ -190,6 +190,23 @@ class LInstructionExpression(InstructionExpression):
     def args(self) -> list[Constant]:
         return [self.label]
 
+class RInstructionExpression(InstructionExpression):
+    def __init__(
+        self,
+        instruction: str,
+        dest: ArgConstant,
+    ):
+        super().__init__(instruction)
+        self.dest = dest
+
+    @property  
+    def args(self) -> list[Constant]:
+        return [self.dest]
+
+class SyscallExpression(Expression):
+    def to_c(self) -> str:
+        return "syscall();"
+
 class MacroExpression(Expression):
     def __init__(self, name: str, args: list[ArgConstant], body: list[Expression]):
         self.name = name
@@ -228,4 +245,4 @@ class LabelExpression(Expression):
         self.label = label
 
     def to_c(self) -> str:
-        return f"{self.label}:"
+        return f"{self.label}"

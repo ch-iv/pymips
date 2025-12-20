@@ -16,7 +16,7 @@ hi()    # do stuff
 .include "pill_red_left.c"
 """
 
-with open("sample2.asm", "r") as f:
+with open("sample.asm", "r") as f:
     source = f.read()
 
 
@@ -59,7 +59,7 @@ class Tokenizer:
                         tokens.append(InstructionToken(buff, line_idx, col_start, i))
                     elif buff.endswith(":"):
                         tokens.append(LabelToken(buff, line_idx, col_start, i))
-                    elif buff.startswith("."):
+                    elif buff.startswith(".") or buff == "syscall":
                         tokens.append(KeywordToken(buff, line_idx, col_start, i))
                     elif buff.startswith("%"):
                         tokens.append(ArgToken(buff, line_idx, col_start, i))
@@ -235,7 +235,6 @@ class Parser:
 
     def parse_macro_call(self) -> MacroCallExpression:
         macro_name_token = to(self.eat(), IdentToken)
-        print(macro_name_token)
         to(self.eat(), LeftParenToken)
         args = []
         while not isinstance(self.peek(), RightParenToken):
@@ -253,6 +252,12 @@ class Parser:
                 return self.parse_macro()
             case ".include":
                 return self.parse_include()
+            case "syscall":
+                self.eat()
+                return SyscallExpression()
+            case ".text":
+                self.eat()
+                return EmptyExpression()
             case _:
                 raise ValueError(f"Unknown keyword: {keyword_token.lexeme}")
 
@@ -275,7 +280,7 @@ class Parser:
                     src2=to(self.eat(), RegisterToken, ArgToken).to_const(),
                 )
             case InstructionType.RI:
-                return RInstructionExpression(
+                return RIInstructionExpression(
                     instruction=instruction_token.lexeme,
                     dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
                     immediate=to(self.eat(), NumConstantToken, ArgToken).to_const(),
@@ -290,14 +295,14 @@ class Parser:
                 return RLInstructionExpression(
                     instruction=instruction_token.lexeme,
                     dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
-                    label=to(self.eat(), LabelToken, ArgToken).to_const(),
+                    label=to(self.eat(), LabelToken, ArgToken, IdentToken).to_const(),
                 )
             case InstructionType.RRL:
                 return RRLInstructionExpression(
                     instruction=instruction_token.lexeme,
-                    src1=to(self.eat(), RegisterToken, ArgToken).to_const(),
-                    src2=to(self.eat(), RegisterToken, ArgToken).to_const(),
-                    label=to(self.eat(), LabelToken, ArgToken).to_const(),
+                    src1=to(self.eat(), RegisterToken, ArgToken, NumConstantToken).to_const(),
+                    src2=to(self.eat(), RegisterToken, ArgToken, NumConstantToken).to_const(),
+                    label=to(self.eat(), IdentToken, ArgToken).to_const(),
                 )
             case InstructionType.RRI:
                 return RRIInstructionExpression(
@@ -310,7 +315,6 @@ class Parser:
                 # This type of instruction can have either an offset (e.g 0($t0)) or a label
                 # as the last argument.
                 dest = to(self.eat(), RegisterToken, ArgToken).to_const()
-                print(instruction_token)
 
                 if isinstance(self.peek(), NumConstantToken):
                     offset = to(self.eat(), NumConstantToken, ArgToken).to_const()
@@ -333,6 +337,11 @@ class Parser:
                 return LInstructionExpression(
                     instruction=instruction_token.lexeme,
                     label=to(self.eat(), LabelToken, ArgToken, IdentToken).to_const(),
+                )
+            case InstructionType.R:
+                return RInstructionExpression(
+                    instruction=instruction_token.lexeme,
+                    dest=to(self.eat(), RegisterToken, ArgToken).to_const(),
                 )
             case _:
                 raise ValueError(f"Unknown instruction type: {instruction_token.instruction_type()}")
@@ -392,8 +401,9 @@ def highlight_token_in_source(token: Token, source: str, error_message: str) -> 
 
 t = Tokenizer(source)
 tokens = t.tokenize()
-# for token in tokens:
-    # print(token)
+for token in tokens:
+    print(token)
+    #print(token)
 import json
 p = Parser(tokens)
 prog = p.parse_top_level()
