@@ -1,81 +1,9 @@
 from tokens.token import *
 from expressions.expression import *
-from tokens.instructions import all_instructions
 from program import Program
 from pathlib import Path
 import subprocess
-
-class Tokenizer:
-    def __init__(self, corpus: str):
-        self.corpus = corpus
-
-    def tokenize(self) -> list[Token]:
-        tokens = []
-        lines = self.corpus.splitlines()
-
-        for line_idx in range(len(lines)):
-            line = lines[line_idx]
-            if not line:
-                continue
-            i = 0
-            while i < len(line):
-                c = line[i]
-                i += 1
-                if c == " ":
-                    continue
-                elif c == "(":
-                    tokens.append(LeftParenToken(c, line_idx, i - 1, i))
-                elif c == ")":
-                    tokens.append(RightParenToken(c, line_idx, i - 1, i))
-                elif c == "$":
-                    buff = c
-                    col_start = i - 1
-                    while i < len(line) and line[i].isalnum():
-                        buff += line[i]
-                        i += 1
-                    tokens.append(RegisterToken(buff, line_idx, col_start, i))
-                elif c.isalpha() or c == "." or c == "%":
-                    buff = c
-                    col_start = i - 1
-                    while i < len(line) and (line[i].isalnum() or line[i] == "_" or line[i] == ":"):
-                        buff += line[i]
-                        i += 1
-                    if buff in all_instructions:
-                        tokens.append(InstructionToken(buff, line_idx, col_start, i))
-                    elif buff.endswith(":"):
-                        tokens.append(LabelToken(buff, line_idx, col_start, i))
-                    elif buff.startswith(".") or buff == "syscall":
-                        tokens.append(KeywordToken(buff, line_idx, col_start, i))
-                    elif buff.startswith("%"):
-                        tokens.append(ArgToken(buff, line_idx, col_start, i))
-                    else:
-                        tokens.append(IdentToken(buff, line_idx, col_start, i))
-                elif c.isnumeric():
-                    buff = c
-                    col_start = i - 1
-                    while i < len(line) and line[i].isalnum():
-                        buff += line[i]
-                        i += 1
-                    tokens.append(NumConstantToken(buff, line_idx, col_start, i))
-                elif c == '"':
-                    buff = c
-                    col_start = i - 1
-                    while i < len(line) and line[i] != '"':
-                        buff += line[i]
-                        i += 1
-                    if i < len(line) and line[i] == '"':
-                        buff += line[i]
-                        i += 1
-                    tokens.append(StrConstantToken(buff, line_idx, col_start, i))
-                elif c == "#":
-                    buff = c
-                    col_start = i - 1
-                    while i < len(line) and line[i] != "\n":
-                        buff += line[i]
-                        i += 1
-                    tokens.append(CommentToken(buff, line_idx, col_start, i))
-        tokens.append(EOFToken("EOF", line_idx, len(line), len(line)))
-        return tokens
+from tokenizer import Tokenizer
 
 def generate_html_highlight(tokens: list[Token], source: str, output_file: str):
     html = [
@@ -352,7 +280,7 @@ def highlight_token_in_source(token: Token, source: str, error_message: str) -> 
             print(f"{RED}{BOLD}{error_message}{RESET}", end="\n\n")
 
 
-with open("sample4.asm", "r") as f:
+with open("tests/samples/sample4.asm", "r") as f:
     source = f.read()
 
 t = Tokenizer(source)
