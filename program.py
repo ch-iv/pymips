@@ -31,9 +31,11 @@ class Program:
                 other.append(statement)
 
         # Wrap all non macro and non include statements into a main block.
-        main_block = MainWrapperExpression(other)
+        main_block = MainWrapperExpression(other, debug_mode=True)
 
         self.statements = [*includes, *macros, main_block]
 
     def to_c(self) -> str:
-        return "\n".join([statement.to_c() for statement in self.statements])
+        source = "#include <libmips.cpp>\n"
+        source += "\n".join([statement.to_c() for statement in self.statements])
+        return source

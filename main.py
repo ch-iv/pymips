@@ -1,25 +1,9 @@
-from typing import Any
 from tokens.token import *
 from expressions.expression import *
 from tokens.instructions import all_instructions
 from program import Program
-
-source = """
-.macro hi(%hi)
-    li $t2 12
-.endmacro
-
-li $t0 34
-li $t1 35
-hi()    # do stuff
-
-.include "board.c"
-.include "pill_red_left.c"
-"""
-
-with open("sample3.asm", "r") as f:
-    source = f.read()
-
+from pathlib import Path
+import subprocess
 
 class Tokenizer:
     def __init__(self, corpus: str):
@@ -367,6 +351,10 @@ def highlight_token_in_source(token: Token, source: str, error_message: str) -> 
             print(f"    {' ' * (token.column_start)}{caret}", end="   ")
             print(f"{RED}{BOLD}{error_message}{RESET}", end="\n\n")
 
+
+with open("sample4.asm", "r") as f:
+    source = f.read()
+
 t = Tokenizer(source)
 tokens = t.tokenize()
 
@@ -375,5 +363,11 @@ statements = p.parse_top_level()
 
 program = Program(statements)
 
-with open("prog.c", "w") as f:
+build_dir = Path("build")
+build_dir.mkdir(exist_ok=True)
+
+with open(build_dir / "prog.cpp", "w") as f:
     f.write(program.to_c())
+
+subprocess.run(["g++", "--std=c++23", "-I.", "-o", build_dir / "prog", build_dir / "prog.cpp"], check=True)
+subprocess.run([build_dir / "prog"], check=True)

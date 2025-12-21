@@ -222,14 +222,20 @@ class MacroExpression(Expression):
 }}"""
 
 class MainWrapperExpression(Expression):
-    def __init__(self, body: list[Expression]) -> None:
+    def __init__(self, body: list[Expression], debug_mode: bool = False) -> None:
         self.body = body
+        self.debug_mode = debug_mode
     
     def to_c(self) -> str:
         body = "\n".join([expr.to_c() for expr in self.body]).splitlines()
-        body = "\n".join([f"\t{line}" for line in body])
 
-        return f"""\nvoid main() {{\n{body}\n}}"""
+        if self.debug_mode:
+            body.append("_mips_dump_registers(); // Debug info")
+
+        body.append("return 0;")
+
+        body = "\n".join([f"\t{line}" for line in body])
+        return f"""\nint main() {{\n{body}\n}}"""
 
 class MacroCallExpression(Expression):
     def __init__(self, name: str, args: list[Constant]):
@@ -244,7 +250,7 @@ class IncludeExpression(Expression):
         self.file_name = file_name
 
     def to_c(self) -> str:
-        return f"#include {self.file_name};"
+        return f"#include {self.file_name}"
 
 class EmptyExpression(Expression):
     def to_c(self) -> str:
