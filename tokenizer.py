@@ -67,5 +67,5 @@ class Tokenizer:
                         i += 1
                     tokens.append(CommentToken(buff, line_idx, col_start, i))
 
-        tokens.append(EOFToken("EOF", line_idx, len(line), len(line)))
+        tokens.append(EOFToken("EOF", len(self.lines), 0, 0))
         return tokens
