@@ -35,7 +35,7 @@ instructions: dict[InstructionType, list[str]] = {
         "xori",
         "subi",
         "sll",
-        "srl",
+        "slr",
     ],
     InstructionType.RL: [
         "la",

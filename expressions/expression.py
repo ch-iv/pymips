@@ -107,6 +107,12 @@ class RRLInstructionExpression(InstructionExpression):
     @property
     def args(self) -> list[Constant]:
         return [self.src1, self.src2, self.label]
+    
+    def to_c(self) -> str:
+        if self.instruction == "beq":
+            return f"if (*{self.src1.to_c()} == *{self.src2.to_c()}) {{ goto {self.label.to_c()}; }}"
+        else:
+            return super().to_c()
 
 class RRIInstructionExpression(InstructionExpression):
     def __init__(
@@ -160,23 +166,6 @@ class RLIInstructionExpression(InstructionExpression):
     def args(self) -> list[Constant]:
         return [self.dest, MockConstant(f"_label_address({self.label.to_c()})")]
 
-class RRLInstructionExpression(InstructionExpression):
-    def __init__(
-        self,
-        instruction: str,
-        src1: RegisterConstant,
-        src2: RegisterConstant,
-        label: LabelConstant,
-    ):
-        super().__init__(instruction)
-        self.src1 = src1
-        self.src2 = src2
-        self.label = label
-
-    @property
-    def args(self) -> list[Constant]:
-        return [self.src1, self.src2, self.label]
-
 class LInstructionExpression(InstructionExpression):
     def __init__(
         self,
@@ -189,6 +178,9 @@ class LInstructionExpression(InstructionExpression):
     @property
     def args(self) -> list[Constant]:
         return [self.label]
+    
+    def to_c(self) -> str:
+        return f"goto {self.label.to_c()};"
 
 class RInstructionExpression(InstructionExpression):
     def __init__(

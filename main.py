@@ -280,7 +280,7 @@ def highlight_token_in_source(token: Token, source: str, error_message: str) -> 
             print(f"{RED}{BOLD}{error_message}{RESET}", end="\n\n")
 
 
-with open("tests/samples/sample4.asm", "r") as f:
+with open("tests/samples/sample6.asm", "r") as f:
     source = f.read()
 
 t = Tokenizer(source)
@@ -290,7 +290,6 @@ p = Parser(tokens)
 statements = p.parse_top_level()
 
 program = Program(statements)
-
 build_dir = Path("build")
 build_dir.mkdir(exist_ok=True)
 
