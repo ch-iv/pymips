@@ -32,7 +32,6 @@ class Token:
                 f"column_end={self.column_end})")
 
 
-
 class InstructionToken(Token):
     def instruction_type(self) -> InstructionType:
         instruction_type = instruction_types[self.lexeme]
@@ -41,7 +40,6 @@ class InstructionToken(Token):
             raise ValueError(f"Unknown instruction type for token: {self.lexeme}")
 
         return instruction_type
-    
 
 
 class RegisterToken(Token):
@@ -78,7 +76,6 @@ class LabelToken(Token):
 class ArgToken(Token):
     def to_const(self, definition: bool = False) -> ArgConstant:
         return ArgConstant(self.lexeme, definition)
-
 
 
 class NumConstantToken(Token):
